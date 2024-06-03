@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualização do K-means</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .svg-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .point {
+            stroke: black;
+        }
+
+        .centroid {
+            stroke: black;
+            stroke-width: 2px;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            shape-rendering: crispEdges;
+        }
+
+        .axis text {
+            font-size: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Visualização K-means</h1>
+    <div class="container">
+        <div class="svg-container">
+            <h2>Inicial</h2>
+            <svg id="initial" width="550" height="450"></svg>
+        </div>
+        <div class="svg-container">
+            <h2>Final</h2>
+            <svg id="final" width="550" height="450"></svg>
+        </div>
+    </div>
+    <script>
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            toString() {
+                return `(${this.x}, ${this.y})`;
+            }
+        }
+
+        class Cluster {
+            constructor(id, center) {
+                this.id = id;
+                this.center = center;
+                this.points = [];
+            }
+
+            limpaPontos() {
+                this.points = [];
+            }
+
+            addPonto(point) {
+                this.points.push(point);
+            }
+
+            listaPontos() {
+                return this.points.map(ponto => ponto.toString());
+            }
+
+            exibirCentroid() {
+                console.log(`Centroid ${this.id}: ${this.center}`);
+            }
+
+            distanciaParaCentroid(point) {
+                const dx = this.center.x - point.x;
+                const dy = this.center.y - point.y;
+                return Math.sqrt(dx ** 2 + dy ** 2);
+            }
+
+            atualizaCentro() {
+                let sum_x = 0;
+                let sum_y = 0;
+
+                for (const point of this.points) {
+                    sum_x += point.x;
+                    sum_y += point.y;
+                }
+
+                const num_points = this.points.length;
+                if (num_points > 0) {
+                    const new_center_x = sum_x / num_points;
+                    const new_center_y = sum_y / num_points;
+                    this.center = new Point(new_center_x, new_center_y);
+                }
+            }
+
+            toString() {
+                return `Centroid ${this.id} \nCentro: ${this.center}\nPontos: ${this.points.join(", ")}\n`;
+            }
+        }
+
+        class KMeans {
+            constructor(qtdCentroids) {
+                this.k = qtdCentroids;
+                this.points = [];
+                this.clusters = [];
+            }
+
+            run() {
+                this.selecionarCentroidAleatorio();
+                this.updateVisualization('initial');
+                let estaAtualizado = false;
+                let rodada = 1;
+                while (!estaAtualizado) {
+                    console.log(`------- Rodada ${rodada} --------`);
+                    this.showCentroid();
+
+                    const pA = this.getPointsFromClusters();
+                    this.limpaCentroids();
+                    this.vinculaPontosAoCentroid();
+                    this.attCentroid();
+
+                    const pN = this.getPointsFromClusters();
+                    console.log(pA);
+                    console.log(pN);
+
+                    estaAtualizado = this.checkConvergence(pA, pN);
+
+                    console.log('-------------------------');
+                    console.log('                              ');
+                    rodada += 1;
+                }
+
+                this.mostraCentroids();
+                this.updateVisualization('final');
+            }
+
+            vinculaPontosAoCentroid() {
+                for (const point of this.points) {
+                    const centroidMaisProximo = this.clusters.reduce((closest, cluster) => {
+                        const distance = cluster.distanciaParaCentroid(point);
+                        return distance < closest.distance ? { cluster, distance } : closest;
+                    }, { cluster: null, distance: Infinity }).cluster;
+                    centroidMaisProximo.addPonto(point);
+                }
+            }
+
+            attCentroid() {
+                for (const cluster of this.clusters) {
+                    cluster.atualizaCentro();
+                }
+            }
+
+            limpaCentroids() {
+                for (const cluster of this.clusters) {
+                    cluster.limpaPontos();
+                }
+            }
+
+            showCentroid() {
+                for (const cluster of this.clusters) {
+                    cluster.exibirCentroid();
+                }
+            }
+
+            mostraCentroids() {
+                for (const cluster of this.clusters) {
+                    console.log(cluster);
+                }
+            }
+
+            addPonto(x, y) {
+                this.points.push(new Point(x, y));
+            }
+
+            selecionarCentroidAleatorio() {
+                const centroidAleatorio = this.points.sort(() => 0.5 - Math.random()).slice(0, this.k);
+                this.clusters = centroidAleatorio.map((center, i) => new Cluster(i, center));
+            }
+
+            getPointsFromClusters() {
+                return this.clusters.map(cluster => cluster.listaPontos());
+            }
+
+            checkConvergence(pA, pN) {
+                if (pA.length !== pN.length) {
+                    return false;
+                }
+                for (let i = 0; i < pA.length; i++) {
+                    if (pA[i].length !== pN[i].length || pA[i].some((point, idx) => point !== pN[i][idx])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            updateVisualization(id) {
+                const colors = d3.schemeCategory10;
+
+                const svg = d3.select(`#${id}`);
+                const width = +svg.attr("width");
+                const height = +svg.attr("height");
+                const margin = 40;
+
+                svg.selectAll("*").remove();
+
+                // Escalas para os eixos
+                const xScale = d3.scaleLinear().domain([0, 10]).range([margin, width - margin]);
+                const yScale = d3.scaleLinear().domain([0, 10]).range([height - margin, margin]);
+
+                // Eixo X
+                const xAxis = d3.axisBottom(xScale);
+                svg.append("g")
+                    .attr("transform", `translate(0,${height - margin})`)
+                    .call(xAxis)
+                    .attr("class", "axis");
+
+                // Eixo Y
+                const yAxis = d3.axisLeft(yScale);
+                svg.append("g")
+                    .attr("transform", `translate(${margin},0)`)
+                    .call(yAxis)
+                    .attr("class", "axis");
+
+                // Desenha os pontos
+                svg.selectAll(".point")
+                    .data(this.points)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "point")
+                    .attr("cx", d => xScale(d.x))
+                    .attr("cy", d => yScale(d.y))
+                    .attr("r", 5)
+                    .attr("fill", "black");
+
+                // Desenha os centroides e as linhas para os pontos
+                this.clusters.forEach((cluster, index) => {
+                    svg.selectAll(`.centroid-${cluster.id}`)
+                        .data([cluster.center])
+                        .enter()
+                        .append("circle")
+                        .attr("class", `centroid centroid-${cluster.id}`)
+                        .attr("cx", d => xScale(d.x))
+                        .attr("cy", d => yScale(d.y))
+                        .attr("r", 10)
+                        .attr("fill", colors[index]);
+
+                    cluster.points.forEach(point => {
+                        svg.append("line")
+                            .attr("x1", xScale(point.x))
+                            .attr("y1", yScale(point.y))
+                            .attr("x2", xScale(cluster.center.x))
+                            .attr("y2", yScale(cluster.center.y))
+                            .attr("stroke", colors[index])
+                            .attr("stroke-width", 1);
+                    });
+                });
+            }
+        }
+
+        const k_means = new KMeans(2);
+
+        k_means.addPonto(1, 1);
+        k_means.addPonto(9.4, 6.4);
+        k_means.addPonto(2.5, 2.1);
+        k_means.addPonto(8, 7.7);
+        k_means.addPonto(0.5, 2.2);
+        k_means.addPonto(0.5, 2.2);
+        k_means.addPonto(7.9, 8.4);
+        k_means.addPonto(7, 7);
+        k_means.addPonto(2.8, 0.8);
+        k_means.addPonto(1.2, 3);
+        k_means.addPonto(7.8, 6.1);
+
+        k_means.run();
+    </script>
+</body>
+
+</html>
