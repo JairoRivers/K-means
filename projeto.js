@@ -1,37 +1,31 @@
 // Classe que representa um ponto
 class Point {
     constructor(x, y) {
-        this.x = x;  // Coordenada X do ponto
-        this.y = y;  // Coordenada Y do ponto
-    }
-
-    toString() {
-        return `(${this.x}, ${this.y})`;  // Representação do ponto como string
+        this.x = x;
+        this.y = y;
     }
 }
 
 // Classe que representa um cluster
 class Cluster {
     constructor(id, center) {
-        this.id = id;  // Identificador do cluster
-        this.center = center;  // Centro (ou centroid) do cluster
+        this.id = id;
+        this.center = center;  // Centroide
         this.points = [];  // Lista de pontos pertencentes ao cluster
     }
 
+    // Limpa a lista de pontos do cluster
     limpaPontos() {
-        this.points = [];  // Limpa a lista de pontos do cluster
+        this.points = [];
     }
 
+    // Adiciona um ponto ao cluster
     addPonto(point) {
-        this.points.push(point);  // Adiciona um ponto ao cluster
+        this.points.push(point);
     }
 
-    listaPontos() {
-        return this.points.map(ponto => ponto.toString());  // Lista os pontos do cluster como strings
-    }
-
-    // Calcula a distância euclidiana do ponto para o centroide do cluster
-    distanciaParaCentroid(point) {
+    // Calcula a distância euclidiana do ponto para o centroide do cluster usando a fórmula
+    distanciaParaCentroide(point) {
         const dx = this.center.x - point.x;
         const dy = this.center.y - point.y;
         return Math.sqrt(dx ** 2 + dy ** 2);
@@ -65,21 +59,21 @@ class KMeans {
     }
 
     run() {
-        this.selecionarCentroidAleatorio();  // Seleciona centroides iniciais aleatórios
+        this.selecionarCentroideAleatorio();  // Seleciona centroides iniciais aleatórios
 
-        let estaAtualizado = false;  // Variável para verificar se houve convergência
+        let atualizado = false;  // Variável para verificar se houve convergência
 
-        while (!estaAtualizado) {
-            const pA = this.getPointsFromClusters(); // Lista contendo pontos do centroide antes da atualização
+        while (!atualizado) {
+            const c1 = this.getPointsFromClusters(); // Lista contendo pontos do centroide antes da atualização
             this.limpaCentroids(); // Limpa os pontos que pertencem ao centroide
 
             this.vinculaPontosAoCentroid(); // Vincula pontos ao cluster mais próximo
             this.attCentroid();  // Atualiza a posição dos centroides
 
-            const pN = this.getPointsFromClusters(); // Lista contendo pontos do centroid depois da atualização
+            const c2 = this.getPointsFromClusters(); // Lista contendo pontos do centroid depois da atualização
 
-            // Verifica se os pontos atribuídos aos clusters não mudaram
-            estaAtualizado = this.checkConvergence(pA, pN);
+            // Verifica se os pontos atribuídos aos clusters não mudaram, se não o Kmeans finalizou
+            atualizado = this.verificarConvergencia(c1, c2);
         }
     }
 
@@ -88,7 +82,7 @@ class KMeans {
 
             // Seleciona o centroid mais próximo ao ponto
             const centroidMaisProximo = this.clusters.reduce((closest, cluster) => {
-                const distance = cluster.distanciaParaCentroid(point);
+                const distance = cluster.distanciaParaCentroide(point);
                 return distance < closest.distance ? { cluster, distance } : closest;
             }, { cluster: null, distance: Infinity }).cluster;
 
@@ -113,17 +107,17 @@ class KMeans {
         this.points.push(new Point(x, y));  // Adiciona um ponto à lista de pontos
     }
 
-    selecionarCentroidAleatorio() {
+    selecionarCentroideAleatorio() {
         // Seleciona aleatoriamente pontos para clusters terem como coordenada inicial
         const centroidAleatorio = this.points.sort(() => 0.5 - Math.random()).slice(0, this.k);
-        this.clusters = centroidAleatorio.map((center, i) => new Cluster(i, center));
+        this.clusters = centroidAleatorio.map((center, i) => new Cluster(i, center)); // Cria um novo cluster com identificador i e centroide center
     }
 
     getPointsFromClusters() {
         return this.clusters.map(cluster => cluster.listaPontos());  // Retorna os pontos de cada cluster como strings
     }
 
-    checkConvergence(pA, pN) {
+    verificarConvergencia(c1, c2) {
         if (pA.length !== pN.length) {
             return false;  // Verifica se o número de clusters mudou
         }
@@ -139,7 +133,7 @@ class KMeans {
 // Instanciando o algoritmo K-means com 2 centroides
 const k_means = new KMeans(2);
 
-// Adicionando pontos
+// Adicionando pontos, os mesmo do exemplo
 k_means.addPonto(1, 1);
 k_means.addPonto(9.4, 6.4);
 k_means.addPonto(2.5, 2.1);
@@ -151,5 +145,4 @@ k_means.addPonto(2.8, 0.8);
 k_means.addPonto(1.2, 3);
 k_means.addPonto(7.8, 6.1);
 
-// Executando o algoritmo K-means
 k_means.run();
