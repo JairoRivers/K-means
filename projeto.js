@@ -1,8 +1,33 @@
+// 1 - Escolhe aleatoriamente dois pontos iniciais para serem os centróides
+
+// 2 - Calcula a distância geométrica entre cada ponto da base até cada centroide
+
+// 3 - Associa cada ponto ao centroide mais perto
+
+// 4 - Se não houve mudança no conjunto dos centroides, então o Kmeans finalizou
+
+// 5 - Se houve mudança no conjunto dos centroides
+
+// 5.1 - Calcula a média das coordendas X do conjunto CJ1
+// 5.2 - Calcula a média das coordendas Y do conjunto CJ1
+// 5.3 - Faça o novo centroide C1 ser os valores das médias de 5.1 e 5.2
+
+// 5.4 - Calcula a média das coordendas X do conjunto CJ2
+// 5.5 - Calcula a média das coordendas Y do conjunto CJ2
+// 5.6 - Faça o novo centroide 21 ser os valores das médias de 5.4 e 5.5
+
+// 6 - Volta para o passo 2
+
+
 // Classe que representa um ponto
 class Point {
     constructor(x, y) {
         this.x = x;
         this.y = y;
+    }
+
+    toString() {
+        return `(${this.x}, ${this.y})`;
     }
 }
 
@@ -32,6 +57,8 @@ class Cluster {
     }
 
     // Atualiza a posição do centroide com as médias das coordenadas X e Y dos pontos do cluster
+    // É responsável por recalcular a posição do centroide de um cluster com base na média das coordenadas
+    // dos pontos atribuídos a esse cluster
     atualizaCentro() {
         let sum_x = 0;
         let sum_y = 0;
@@ -45,6 +72,8 @@ class Cluster {
         if (num_points > 0) {
             const new_center_x = sum_x / num_points;
             const new_center_y = sum_y / num_points;
+
+            // Atualiza a posição do centroide para a nova posição calculada
             this.center = new Point(new_center_x, new_center_y);
         }
     }
@@ -59,7 +88,8 @@ class KMeans {
     }
 
     run() {
-        this.selecionarCentroideAleatorio();  // Seleciona centroides iniciais aleatórios
+        // 1 - Escolhe aleatoriamente dois pontos iniciais para serem os centróides
+        this.selecionarCentroideAleatorio();
 
         let atualizado = false;  // Variável para verificar se houve convergência
 
@@ -70,17 +100,20 @@ class KMeans {
             this.vinculaPontosAoCentroid(); // Vincula pontos ao cluster mais próximo
             this.attCentroid();  // Atualiza a posição dos centroides
 
-            const c2 = this.getPointsFromClusters(); // Lista contendo pontos do centroid depois da atualização
+            const c2 = this.getPointsFromClusters(); // Lista contendo pontos do centroide depois da atualização
 
             // Verifica se os pontos atribuídos aos clusters não mudaram, se não o Kmeans finalizou
             atualizado = this.verificarConvergencia(c1, c2);
         }
+        // 4 - Se não houve mudança no conjunto dos centroides, então o Kmeans finalizou
+
     }
 
     vinculaPontosAoCentroid() {
         for (const point of this.points) {
+            // 2 - Calcula a distância geométrica entre cada ponto da base até cada centroide
+            // 3 - Associa cada ponto ao centroide mais perto
 
-            // Seleciona o centroid mais próximo ao ponto
             const centroidMaisProximo = this.clusters.reduce((closest, cluster) => {
                 const distance = cluster.distanciaParaCentroide(point);
                 return distance < closest.distance ? { cluster, distance } : closest;
@@ -114,7 +147,7 @@ class KMeans {
     }
 
     getPointsFromClusters() {
-        return this.clusters.map(cluster => cluster.listaPontos());  // Retorna os pontos de cada cluster como strings
+        return this.clusters.map(cluster => cluster.listaPontos());
     }
 
     verificarConvergencia(c1, c2) {
@@ -127,6 +160,8 @@ class KMeans {
             }
         }
         return true;  // Retorna verdadeiro se os pontos não mudaram
+        // 4 - Se não houve mudança no conjunto dos centroides, então o Kmeans finalizou
+
     }
 }
 
@@ -134,15 +169,16 @@ class KMeans {
 const k_means = new KMeans(2);
 
 // Adicionando pontos, os mesmo do exemplo
-k_means.addPonto(1, 1);
-k_means.addPonto(9.4, 6.4);
-k_means.addPonto(2.5, 2.1);
-k_means.addPonto(8, 7.7);
 k_means.addPonto(0.5, 2.2);
-k_means.addPonto(7.9, 8.4);
-k_means.addPonto(7, 7);
-k_means.addPonto(2.8, 0.8);
 k_means.addPonto(1.2, 3);
+k_means.addPonto(1, 1);
+k_means.addPonto(2.5, 2.1);
+k_means.addPonto(2.8, 0.8);
+k_means.addPonto(7, 7);
 k_means.addPonto(7.8, 6.1);
+k_means.addPonto(7.9, 8.4);
+k_means.addPonto(8, 7.7);
+k_means.addPonto(9.4, 6.4);
+
 
 k_means.run();
